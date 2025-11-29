@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 
 const userController = {
     
-    // --- LISTAR TODOS (Banco Principal - Samuel) ---
+    // Listar todos do banco principal
     getAllUsers: async (req, res) => {
         try {
             const [rows] = await poolSamuel.query('SELECT usuario_id, usuario_nome, usuario_email, usuario_dataDeNascimento, usuario_telefone, usuario_endereco FROM usuario');
@@ -13,7 +13,7 @@ const userController = {
         }
     },
 
-    // --- BUSCAR POR ID (Banco Principal - Samuel) ---
+    // Buscar por ID do banco principal
     getUserById: async (req, res) => {
         const { id } = req.params;
         try {
@@ -29,7 +29,7 @@ const userController = {
         }
     },
 
-    // --- CRIAR USUÁRIO (COM REPLICAÇÃO CORRIGIDA) ---
+    // Criação de usuário (usando replicação)
     createUser: async (req, res) => {
         const { nome, email, senha, dataNascimento, telefone, endereco } = req.body;
 
@@ -52,8 +52,7 @@ const userController = {
 
             await connSamuel.beginTransaction();
 
-            // 1. Inserir no Banco Principal (Samuel)
-            // Schema: usuario_nome, usuario_email, ...
+            // Inserir no banco principal (Samuel)
             const querySamuel = `
                 INSERT INTO usuario (usuario_nome, usuario_email, usuario_senha, usuario_dataDeNascimento, usuario_telefone, usuario_endereco) 
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -61,25 +60,21 @@ const userController = {
             const [resultSamuel] = await connSamuel.query(querySamuel, [nome, email, senha, dataNascimento, telefone, endereco]);
             const novoId = resultSamuel.insertId;
 
-            // 2. Inserir no Banco Referência (Arthur) - CORRIGIDO
-            // Tabela: usuarioreferencia
-            // Colunas: id, nome, tipoUsuario
+            // Inserir no banco referência (Empréstimos)
             const queryArthur = `
                 INSERT INTO usuarioreferencia (id, nome, tipoUsuario) 
                 VALUES (?, ?, 'user')
             `;
             await connArthur.query(queryArthur, [novoId, nome]);
 
-            // 3. Inserir no Banco Réplica (Thamires)
-            // Tabela: usuario
-            // Colunas: idUsuario, nomeUsuario, email, senha
+            // Inserir no banco referência (Reservas)
             const queryThamires = `
                 INSERT INTO usuario (idUsuario, nomeUsuario, email, senha) 
                 VALUES (?, ?, ?, ?)
             `;
             await connThamires.query(queryThamires, [novoId, nome, email, senha]);
 
-            // Confirma transação no principal se todas as réplicas funcionarem (ou se não quiser bloquear, pode mover o commit para cima)
+            // Confirmação da criação em todos os bancos
             await connSamuel.commit();
 
             res.status(201).json({ 
@@ -93,7 +88,7 @@ const userController = {
             // Desfaz no principal se houver erro
             if (connSamuel) await connSamuel.rollback();
             
-            // Retorna erro mas não expõe detalhes técnicos sensíveis
+            // Retorna erro
             res.status(500).json({ error: "Erro ao registrar usuário. Verifique os logs." });
         } finally {
             if (connSamuel) connSamuel.release();
@@ -102,7 +97,7 @@ const userController = {
         }
     },
 
-    // --- ATUALIZAR USUÁRIO (Mantido no principal) ---
+    // Atualizar
     updateUser: async (req, res) => {
         const { id } = req.params;
         const { nome, email, senha, dataNascimento, telefone, endereco } = req.body;
@@ -146,7 +141,7 @@ const userController = {
         }
     },
 
-    // --- DELETAR USUÁRIO (Mantido no principal) ---
+    // Deletar usuário
     deleteUser: async (req, res) => {
         const { id } = req.params;
 
@@ -163,7 +158,7 @@ const userController = {
         }
     },
 
-    // --- LOGIN (Mantido no principal) ---
+    // Realizar login
     login: async (req, res) => {
         const { email, senha } = req.body;
 
