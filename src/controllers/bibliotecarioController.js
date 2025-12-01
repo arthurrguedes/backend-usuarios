@@ -1,4 +1,4 @@
-const db = require('../db');
+const { poolSamuel } = require('../db'); 
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -7,7 +7,7 @@ const bibliotecarioController = {
     // Listar todos os bibliotecários
     getAllBibliotecarios: async (req, res) => {
         try {
-            const [rows] = await db.query('SELECT bibliotecario_id, bibliotecario_nome, bibliotecario_login FROM bibliotecario');
+            const [rows] = await poolSamuel.query('SELECT bibliotecario_id, bibliotecario_nome, bibliotecario_login FROM bibliotecario');
             res.json(rows);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -18,7 +18,7 @@ const bibliotecarioController = {
     getBibliotecarioById: async (req, res) => {
         const { id } = req.params;
         try {
-            const [rows] = await db.query('SELECT bibliotecario_id, bibliotecario_nome, bibliotecario_login FROM bibliotecario WHERE bibliotecario_id = ?', [id]);
+            const [rows] = await poolSamuel.query('SELECT bibliotecario_id, bibliotecario_nome, bibliotecario_login FROM bibliotecario WHERE bibliotecario_id = ?', [id]);
             
             if (rows.length === 0) {
                 return res.status(404).json({ message: "Bibliotecário não encontrado" });
@@ -39,8 +39,7 @@ const bibliotecarioController = {
         }
 
         try {
-            // Verifica se login já existe
-            const [existing] = await db.query('SELECT * FROM bibliotecario WHERE bibliotecario_login = ?', [login]);
+            const [existing] = await poolSamuel.query('SELECT * FROM bibliotecario WHERE bibliotecario_login = ?', [login]);
             if (existing.length > 0) {
                 return res.status(409).json({ message: "Login já está em uso" });
             }
@@ -50,7 +49,7 @@ const bibliotecarioController = {
                 VALUES (?, ?, ?)
             `;
             
-            const [result] = await db.query(query, [nome, login, senha]);
+            const [result] = await poolSamuel.query(query, [nome, login, senha]);
 
             res.status(201).json({ 
                 message: "Bibliotecário criado com sucesso",
@@ -71,7 +70,7 @@ const bibliotecarioController = {
         }
 
         try {
-            const [check] = await db.query('SELECT bibliotecario_id FROM bibliotecario WHERE bibliotecario_id = ?', [id]);
+            const [check] = await poolSamuel.query('SELECT bibliotecario_id FROM bibliotecario WHERE bibliotecario_id = ?', [id]);
             if (check.length === 0) {
                 return res.status(404).json({ message: "Bibliotecário não encontrado" });
             }
@@ -81,8 +80,7 @@ const bibliotecarioController = {
                 SET bibliotecario_nome = ?, bibliotecario_login = ?, bibliotecario_senha = ?
                 WHERE bibliotecario_id = ?
             `;
-
-            await db.query(query, [nome, login, senha, id]);
+            await poolSamuel.query(query, [nome, login, senha, id]);
 
             res.json({ message: "Bibliotecário atualizado com sucesso" });
         } catch (error) {
@@ -95,7 +93,7 @@ const bibliotecarioController = {
         const { id } = req.params;
 
         try {
-            const [result] = await db.query('DELETE FROM bibliotecario WHERE bibliotecario_id = ?', [id]);
+            const [result] = await poolSamuel.query('DELETE FROM bibliotecario WHERE bibliotecario_id = ?', [id]);
 
             if (result.affectedRows === 0) {
                 return res.status(404).json({ message: "Bibliotecário não encontrado" });
@@ -109,11 +107,10 @@ const bibliotecarioController = {
 
     // Login de Bibliotecário
     login: async (req, res) => {
-        // Nota: A tabela usa 'bibliotecario_login', não email.
         const { login, senha } = req.body;
 
         try {
-            const [rows] = await db.query('SELECT * FROM bibliotecario WHERE bibliotecario_login = ?', [login]);
+            const [rows] = await poolSamuel.query('SELECT * FROM bibliotecario WHERE bibliotecario_login = ?', [login]);
 
             if (rows.length === 0) {
                 return res.status(404).json({ message: "Bibliotecário não encontrado" });
@@ -142,7 +139,7 @@ const bibliotecarioController = {
                     id: lib.bibliotecario_id,
                     nome: lib.bibliotecario_nome,
                     login: lib.bibliotecario_login,
-                    role: 'admin' // Importante para o front-end saber que é admin
+                    role: 'admin'
                 }
             });
 
