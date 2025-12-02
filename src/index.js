@@ -6,7 +6,7 @@ const userRoutes = require('./routes/userRoutes');
 const bibliotecarioRoutes = require('./routes/bibliotecarioRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 4001;
+const PORT = process.env.PORT || 3006;
 
 app.use(cors()); // Libera acesso para o Front-end React
 app.use(express.json()); // Permite ler JSON no body das requisições
